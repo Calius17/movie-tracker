@@ -1,24 +1,52 @@
-import { TmdbSearch } from '@/components/tmdb-search';
+import { Flame } from 'lucide-react';
 
-export default function Home() {
+import { MovieRail, SpotlightHero } from '@/components/movie-gallery';
+import { getHomeCollections } from '@/lib/tmdb-server';
+
+export default async function Home() {
+  const collections = await getHomeCollections();
+
   return (
-    <main className='mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8'>
-      <section className='rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7'>
-        <p className='text-sm font-semibold uppercase tracking-[0.14em] text-sky-700'>
-          University Project Starter
-        </p>
-        <h1 className='mt-2 text-3xl font-bold tracking-tight sm:text-4xl'>
-          Online Movie Tracking and Site Recommendation System
-        </h1>
-        <p className='mt-3 max-w-3xl text-sm text-slate-600 sm:text-base'>
-          Users can search movies, build watchlists, and receive personalized
-          recommendations. This base includes TMDB real-time search, Supabase
-          client wiring, and SQL tables for profiles, watchlist, and support
-          tickets.
-        </p>
+    <main className='mx-auto flex w-full max-w-none flex-1 flex-col gap-8 px-4 py-6 sm:px-6 lg:px-10 2xl:px-14'>
+      <section className='flex flex-wrap items-center gap-3 rounded-full border border-white/10 bg-white/5 px-3 py-3 text-sm text-slate-200 backdrop-blur'>
+        <span className='inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-sky-300'>
+          <Flame className='h-3.5 w-3.5' />
+          Trending now
+        </span>
+        <span className='text-slate-300'>
+          Professional movie tracking with TMDB banners, separate pages, and a
+          responsive media layout.
+        </span>
       </section>
 
-      <TmdbSearch />
+      <SpotlightHero movie={collections.spotlight} />
+
+      <section className='space-y-10'>
+        <MovieRail
+          title='Trending Now'
+          subtitle='The most active titles right now, shown in a responsive shelf for desktop and mobile.'
+          movies={collections.trending}
+          href='/browse'
+        />
+        <MovieRail
+          title='Now Playing'
+          subtitle='Current releases that make the homepage feel alive and curated.'
+          movies={collections.nowPlaying}
+          href='/browse'
+        />
+        <MovieRail
+          title='Recommended Picks'
+          subtitle='A clean recommendation rail powered by TMDB popular titles and your viewing patterns.'
+          movies={collections.recommended}
+          href='/premium'
+        />
+        <MovieRail
+          title='Upcoming'
+          subtitle='What is coming soon, with banner imagery and quick release context.'
+          movies={collections.upcoming}
+          href='/browse'
+        />
+      </section>
     </main>
   );
 }

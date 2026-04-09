@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 type TmdbMovie = {
   id: number;
   title: string;
@@ -11,21 +13,29 @@ type TmdbMovie = {
 
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get('q')?.trim();
-  const tmdbApiKey = process.env.TMDB_API_KEY;
+  const tmdbApiKey =
+    process.env.TMDB_API_KEY ?? process.env.NEXT_PUBLIC_TMDB_API_KEY;
+  const tmdbBearerToken =
+    process.env.TMDB_BEARER_TOKEN ?? process.env.TMDB_API_READ_ACCESS_TOKEN;
 
   if (!query) {
     return NextResponse.json({ results: [] });
   }
 
-  if (!tmdbApiKey) {
+  if (!tmdbApiKey && !tmdbBearerToken) {
     return NextResponse.json(
-      { error: 'TMDB_API_KEY is not configured.' },
+      {
+        error:
+          'TMDB credentials are missing. Set TMDB_API_KEY or TMDB_BEARER_TOKEN in .env.local and restart the dev server.',
+      },
       { status: 500 },
     );
   }
 
   const url = new URL('https://api.themoviedb.org/3/search/movie');
-  url.searchParams.set('api_key', tmdbApiKey);
+  if (tmdbApiKey) {
+    url.searchParams.set('api_key', tmdbApiKey);
+  }
   url.searchParams.set('query', query);
   url.searchParams.set('include_adult', 'false');
   url.searchParams.set('language', 'en-US');
@@ -33,13 +43,26 @@ export async function GET(request: NextRequest) {
 
   const response = await fetch(url.toString(), {
     method: 'GET',
-    headers: { Accept: 'application/json' },
+    headers: {
+      Accept: 'application/json',
+      ...(tmdbBearerToken
+        ? { Authorization: `Bearer ${tmdbBearerToken}` }
+        : {}),
+    },
     next: { revalidate: 0 },
   });
 
   if (!response.ok) {
+    const tmdbError = (await response.json().catch(() => null)) as {
+      status_message?: string;
+    } | null;
+
     return NextResponse.json(
-      { error: 'Failed to fetch data from TMDB.' },
+      {
+        error:
+          tmdbError?.status_message ??
+          'Failed to fetch data from TMDB. Verify your TMDB key/token.',
+      },
       { status: response.status },
     );
   }
