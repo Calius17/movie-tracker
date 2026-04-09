@@ -75,7 +75,7 @@ export function TmdbSearch({ onAddMovie }: TmdbSearchProps) {
   }, [query]);
 
   return (
-    <Card className='border-white/10 bg-slate-950/85 text-white shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl'>
+    <Card className='overflow-hidden border-white/10 bg-slate-950/85 text-white shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl'>
       <CardHeader className='gap-4 border-b border-white/10 bg-[linear-gradient(180deg,rgba(34,211,238,0.10),rgba(2,6,23,0))]'>
         <div className='flex items-start justify-between gap-4'>
           <div>

@@ -76,7 +76,7 @@ export function MovieRail({ title, subtitle, movies, href }: MovieRailProps) {
       ) : null}
 
       <div className='pb-1'>
-        <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+        <div className='grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5'>
           {movies.map((movie) => {
             const artwork = resolveMovieImage(movie);
             return (
@@ -85,7 +85,7 @@ export function MovieRail({ title, subtitle, movies, href }: MovieRailProps) {
                 className='group overflow-hidden border-white/10 bg-white/5 text-white shadow-[0_20px_50px_rgba(0,0,0,0.25)] transition duration-300 hover:-translate-y-1 hover:border-sky-400/30 hover:bg-white/10'
               >
                 <Link href={`/movie/${movie.id}`} className='block'>
-                  <div className='relative aspect-[2/3] overflow-hidden bg-slate-900'>
+                  <div className='relative aspect-[5/7] overflow-hidden bg-slate-900'>
                     {artwork ? (
                       <Image
                         src={artwork}
@@ -99,17 +99,17 @@ export function MovieRail({ title, subtitle, movies, href }: MovieRailProps) {
                       <div className='absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950' />
                     )}
                     <div className='absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/55 to-transparent' />
-                    <div className='absolute inset-x-0 bottom-0 space-y-2 p-4 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)]'>
+                    <div className='absolute inset-x-0 bottom-0 space-y-1.5 p-3 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)]'>
                       <div className='flex items-center gap-2'>
-                        <Badge className='rounded-full border border-white/10 bg-black/65 text-white shadow-sm backdrop-blur'>
-                          <Star className='mr-1 h-3.5 w-3.5 fill-current' />
+                        <Badge className='rounded-full border border-white/10 bg-black/65 px-2 py-0.5 text-[11px] text-white shadow-sm backdrop-blur'>
+                          <Star className='mr-1 h-3 w-3 fill-current' />
                           {resolveMovieVote(movie)}
                         </Badge>
-                        <span className='rounded-full bg-black/45 px-2 py-1 text-xs text-white/90 backdrop-blur'>
+                        <span className='rounded-full bg-black/45 px-2 py-0.5 text-[11px] text-white/90 backdrop-blur'>
                           {resolveMovieYear(movie)}
                         </span>
                       </div>
-                      <h3 className='line-clamp-2 text-base font-semibold leading-snug'>
+                      <h3 className='line-clamp-2 text-sm font-semibold leading-snug sm:text-[15px]'>
                         {movie.title}
                       </h3>
                     </div>
@@ -131,7 +131,7 @@ export function SpotlightHero({ movie }: { movie: TmdbMovie | null }) {
 
   return (
     <Card className='overflow-hidden border-white/10 bg-slate-950 text-white shadow-[0_24px_80px_rgba(0,0,0,0.45)]'>
-      <div className='relative min-h-[440px] overflow-hidden sm:min-h-[500px] xl:min-h-[560px]'>
+      <div className='relative min-h-[360px] overflow-hidden sm:min-h-[420px] xl:min-h-[480px]'>
         <div
           className='absolute inset-0 bg-cover bg-center'
           style={{
@@ -139,8 +139,8 @@ export function SpotlightHero({ movie }: { movie: TmdbMovie | null }) {
           }}
         />
         <div className='absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(217,70,239,0.16),transparent_28%)]' />
-        <div className='relative grid min-h-[440px] gap-6 p-4 sm:min-h-[500px] sm:p-8 xl:grid-cols-[1.2fr,0.8fr] xl:p-10'>
-          <div className='flex flex-col justify-end space-y-5 xl:pr-8'>
+        <div className='relative grid min-h-[360px] gap-5 p-4 sm:min-h-[420px] sm:p-7 xl:grid-cols-[1.2fr,0.8fr] xl:p-9'>
+          <div className='flex flex-col justify-end space-y-4 xl:pr-8'>
             <div className='flex flex-wrap items-center gap-2'>
               <Badge className='rounded-full bg-white/10 text-white'>
                 Trending spotlight
@@ -149,14 +149,14 @@ export function SpotlightHero({ movie }: { movie: TmdbMovie | null }) {
                 Curated banner art
               </Badge>
             </div>
-            <div className='space-y-4'>
+            <div className='space-y-3'>
               <p className='text-xs uppercase tracking-[0.3em] text-sky-300'>
                 Movie Orbit
               </p>
-              <h1 className='max-w-3xl text-3xl font-semibold tracking-tight sm:text-5xl xl:text-6xl'>
+              <h1 className='max-w-3xl text-2xl font-semibold tracking-tight sm:text-4xl xl:text-5xl'>
                 {movie?.title ?? 'Discover the next movie worth tracking.'}
               </h1>
-              <p className='max-w-2xl text-sm leading-7 text-slate-300 sm:text-base'>
+              <p className='max-w-2xl text-sm leading-6 text-slate-300 sm:text-[15px]'>
                 {movie?.overview ??
                   'Spotlight titles, trending recommendations, and a cleaner browsing experience with actual movie banner imagery.'}
               </p>
@@ -191,7 +191,7 @@ export function SpotlightHero({ movie }: { movie: TmdbMovie | null }) {
           </div>
 
           <div className='flex items-end justify-center xl:justify-end'>
-            <div className='w-full max-w-[260px] overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/20 shadow-2xl backdrop-blur-md sm:max-w-sm'>
+            <div className='w-full max-w-[220px] overflow-hidden rounded-[1.25rem] border border-white/10 bg-black/20 shadow-2xl backdrop-blur-md sm:max-w-[260px]'>
               <div className='relative aspect-[2/3] overflow-hidden bg-slate-900'>
                 {artwork ? (
                   <Image
@@ -207,7 +207,7 @@ export function SpotlightHero({ movie }: { movie: TmdbMovie | null }) {
                 )}
                 <div className='absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent' />
               </div>
-              <div className='space-y-3 p-4 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)]'>
+              <div className='space-y-2 p-3 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)] sm:p-4'>
                 <div className='flex items-center justify-between text-sm text-white/85'>
                   <span>Featured recommendation</span>
                   <span className='inline-flex items-center gap-1 text-amber-200'>
@@ -215,10 +215,10 @@ export function SpotlightHero({ movie }: { movie: TmdbMovie | null }) {
                     {voteAverageLabel(movie?.vote_average)}
                   </span>
                 </div>
-                <p className='text-lg font-semibold'>
+                <p className='text-base font-semibold sm:text-lg'>
                   {movie?.title ?? 'Spotlight title'}
                 </p>
-                <p className='line-clamp-3 text-sm leading-6 text-slate-300'>
+                <p className='line-clamp-3 text-sm leading-5 text-slate-300'>
                   {movie?.overview ??
                     'This area will showcase the current trending movie with banner art and quick context.'}
                 </p>

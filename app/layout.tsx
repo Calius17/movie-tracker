@@ -33,7 +33,7 @@ export default function RootLayout({
       <body className='min-h-full flex flex-col bg-background text-foreground'>
         <Navbar />
         <div className='flex-1'>{children}</div>
-        <footer className='border-t border-white/10 bg-slate-950/80 px-4 py-4 text-center text-sm text-slate-300 backdrop-blur sm:px-6 lg:px-8'>
+        <footer className='border-t border-white/10 bg-slate-950/55 px-4 py-4 text-center text-sm text-slate-300 backdrop-blur sm:px-6 lg:px-8'>
           Copyright {currentYear} by Tanvin Adnan Turag
         </footer>
       </body>
