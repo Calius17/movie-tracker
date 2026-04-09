@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 
 const navigation = [
   { href: '/browse', label: 'Browse' },
-  { href: '/watchlist', label: 'Watchlist' },
+  { href: '/watchlist', label: 'My List' },
 ];
 
 export function Navbar() {
@@ -24,13 +24,8 @@ export function Navbar() {
           <span className='flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 via-sky-500 to-indigo-500 text-white shadow-lg shadow-cyan-500/25 sm:h-10 sm:w-10'>
             <Film className='h-5 w-5' />
           </span>
-          <span>
-            <span className='block text-base font-semibold tracking-tight sm:text-lg'>
-              Movie Orbit
-            </span>
-            <span className='block text-[11px] text-slate-400 sm:text-xs'>
-              Track. Recommend. Stream.
-            </span>
+          <span className='text-base font-semibold tracking-tight sm:text-lg'>
+            Movie Orbit
           </span>
         </Link>
 
@@ -39,7 +34,7 @@ export function Navbar() {
             <Link
               key={item.href}
               href={item.href}
-              className='shrink-0 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-slate-200 transition hover:border-sky-400/40 hover:bg-sky-500/10 hover:text-white'
+              className='shrink-0 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-slate-200 transition hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-white'
             >
               {item.label}
             </Link>
