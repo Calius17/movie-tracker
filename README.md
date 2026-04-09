@@ -4,7 +4,7 @@ Online Movie Tracking and Site Recommendation System built with Next.js App Rout
 
 ## Live Website
 
-Production: https://movie-tracker-nigeriansuppliers-projects.vercel.app
+Production: https://movie-tracker-calius-projects.vercel.app
 
 ## Tech Stack
 
