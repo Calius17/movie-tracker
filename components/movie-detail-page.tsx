@@ -316,7 +316,7 @@ export function MovieDetailPage({ movieId }: { movieId: number }) {
               </Badge>
             </div>
 
-            {openInWatchlist ? (
+            {watchlistItem ? (
               <div className='space-y-3'>
                 <Select
                   value={watchlistItem.status}
