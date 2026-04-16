@@ -81,3 +81,10 @@ body::after {
 ::selection {
   background: rgba(56, 189, 248, 0.22);
 }
+
+select,
+select option,
+select optgroup {
+  background-color: #0b1324;
+  color: #e5ecff;
+}

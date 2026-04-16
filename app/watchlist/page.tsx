@@ -38,28 +38,45 @@ export default function WatchlistPage() {
         title='Sign in to keep your watchlist synced.'
         description='Your tracked movies, ratings, and reviews live behind your account instead of exposed as a public toggle.'
       >
-        <Card className='border-white/10 bg-slate-950/85 text-white'>
-          <CardContent className='space-y-4 p-6'>
-            <p className='text-sm leading-7 text-slate-300'>
-              Sign in or create an account to save watchlist items and keep your
-              viewing progress across sessions.
-            </p>
-            <div className='flex flex-wrap gap-3'>
-              <Link
-                href='/login'
-                className='inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm text-white transition hover:bg-white/10'
-              >
-                Log in
-              </Link>
-              <Link
-                href='/signup'
-                className='inline-flex h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-medium text-slate-950 transition hover:bg-slate-100'
-              >
-                Sign up
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+        <div className='grid gap-4 lg:grid-cols-[0.95fr,1.05fr]'>
+          <Card className='border-white/10 bg-slate-950/85 text-white'>
+            <CardContent className='space-y-3 p-5 sm:p-6'>
+              <p className='text-sm leading-6 text-slate-300'>
+                Sign in or create an account to save watchlist items and keep
+                your viewing progress across sessions.
+              </p>
+              <div className='flex flex-wrap gap-3'>
+                <Link
+                  href='/login'
+                  className='inline-flex h-10 items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 text-sm text-white transition hover:bg-white/10'
+                >
+                  Log in
+                </Link>
+                <Link
+                  href='/signup'
+                  className='inline-flex h-10 items-center justify-center rounded-full bg-white px-4 text-sm font-medium text-slate-950 transition hover:bg-slate-100'
+                >
+                  Sign up
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className='border-white/10 bg-slate-950/85 text-white'>
+            <CardContent className='space-y-3 p-5 sm:p-6'>
+              <p className='text-xs uppercase tracking-[0.18em] text-slate-400'>
+                Clean sync
+              </p>
+              <p className='text-sm leading-6 text-slate-300'>
+                Your watch history, ratings, and notes stay private and synced
+                to your profile.
+              </p>
+              <p className='text-sm text-slate-400'>
+                No oversized panels, no clutter, just a focused account flow.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </PageShell>
     );
   }
@@ -70,7 +87,7 @@ export default function WatchlistPage() {
       title='Your tracked movies, in a clean card layout.'
       description='Update statuses, ratings, and reviews without cramming everything into a single endless dashboard.'
     >
-      <div className='grid gap-6 xl:grid-cols-[1fr,320px]'>
+      <div className='grid gap-6 xl:grid-cols-[minmax(0,1fr),280px]'>
         <section className='space-y-4'>
           <div className='grid gap-3 sm:grid-cols-3'>
             {[
@@ -94,7 +111,7 @@ export default function WatchlistPage() {
 
           {state.watchlist.length === 0 ? (
             <Card className='border-white/10 bg-slate-950/85 text-white'>
-              <CardContent className='p-8 text-sm text-slate-300'>
+              <CardContent className='p-6 text-sm text-slate-300'>
                 Your watchlist is empty. Go to Browse and save a movie to start
                 tracking.
               </CardContent>

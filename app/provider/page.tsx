@@ -79,7 +79,7 @@ export default function ProviderPage() {
     >
       <div className='grid gap-6 xl:grid-cols-[0.9fr,1.1fr]'>
         <Card className='border-white/10 bg-slate-950/85 text-white'>
-          <CardContent className='space-y-4 p-5'>
+          <CardContent className='mx-auto w-full max-w-md space-y-4 p-5'>
             <div className='flex items-center gap-2'>
               <Badge variant='accent'>
                 <PlusCircle className='mr-1 h-3.5 w-3.5' />
@@ -126,11 +126,7 @@ export default function ProviderPage() {
               }
               placeholder='Notes about region, availability, or pricing'
             />
-            <Button
-              type='button'
-              className='w-full'
-              onClick={submitProviderLink}
-            >
+            <Button type='button' className='px-5' onClick={submitProviderLink}>
               Save link
             </Button>
           </CardContent>

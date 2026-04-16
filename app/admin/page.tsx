@@ -12,18 +12,20 @@ import { Card, CardContent } from '@/components/ui/card';
 export default function AdminPage() {
   const { state, updateTicketStatus, openTickets } = useMovieOrbitState();
   const tickets = state.tickets;
+  const isStaff = state.role === 'admin' || state.role === 'moderator';
 
   if (!state.isAuthenticated) {
     return (
       <PageShell
-        eyebrow='Admin'
-        title='Admin access is restricted.'
-        description='Moderation tools stay behind authenticated admin accounts.'
+        eyebrow='Staff'
+        title='Staff dashboard is restricted.'
+        description='Moderation tools stay behind authenticated admin or moderator accounts.'
       >
         <Card className='border-white/10 bg-slate-950/85 text-white'>
           <CardContent className='space-y-4 p-6'>
             <p className='text-sm leading-7 text-slate-300'>
-              Sign in with an admin account to manage reports and moderation.
+              Sign in with an admin or moderator account to manage reports and
+              moderation.
             </p>
             <div className='flex flex-wrap gap-3'>
               <Link
@@ -45,17 +47,18 @@ export default function AdminPage() {
     );
   }
 
-  if (state.role !== 'admin') {
+  if (!isStaff) {
     return (
       <PageShell
-        eyebrow='Admin'
-        title='Admin access required.'
-        description='Only accounts with admin access can open this moderation workspace.'
+        eyebrow='Staff'
+        title='Staff access required.'
+        description='Only accounts with admin or moderator access can open this moderation workspace.'
       >
         <Card className='border-white/10 bg-slate-950/85 text-white'>
           <CardContent className='space-y-4 p-6'>
             <p className='text-sm leading-7 text-slate-300'>
-              Switch to an admin account in your profile session to continue.
+              Switch to an admin or moderator account in your profile session to
+              continue.
             </p>
             <Link
               href='/login'
@@ -71,15 +74,15 @@ export default function AdminPage() {
 
   return (
     <PageShell
-      eyebrow='Admin'
-      title='Moderation, reports, and platform insight in one place.'
-      description='Separate from the user flows so moderation work feels intentional instead of buried in a long scroll.'
+      eyebrow='Staff'
+      title='Moderation and safety operations in one place.'
+      description='A clean staff dashboard for admin and moderators, separate from customer flows.'
     >
       <div className='grid gap-6 xl:grid-cols-[0.75fr,1.25fr]'>
         <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-1'>
           {[
             { label: 'Open reports', value: openTickets, icon: Flag },
-            { label: 'Roles', value: '4', icon: Users },
+            { label: 'Current role', value: state.role, icon: Users },
             { label: 'Moderation focus', value: 'Reviews', icon: ShieldCheck },
           ].map((item) => (
             <Card
