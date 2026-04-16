@@ -1,82 +1,105 @@
 # Movie Orbit
 
-Online Movie Tracking and Site Recommendation System built with Next.js App Router, Tailwind CSS, Supabase, and TMDB.
+Movie Orbit is a clean, role-aware movie tracking and recommendation web app built with Next.js.
+It combines TMDB-powered discovery with watchlist management, plan onboarding, and staff workflows.
 
-## Live Website
+## Live URL
 
-Production: https://movie-tracker-calius-projects.vercel.app
+Primary production URL:
+https://movie-tracker-calius-projects.vercel.app/
+
+## Highlights
+
+- Modern Next.js App Router project with TypeScript and Tailwind CSS 4
+- TMDB-powered browse, search, discover, and movie detail experiences
+- Personal watchlist with status, rating, and notes
+- Plan flow with Free and Ad-free onboarding
+- Role-aware pages for user dashboard, provider portal, and staff moderation
+- Local demo auth and per-account persisted state (isolated by user email)
+
+## App Routes
+
+- / (home)
+- /browse
+- /movie/[id]
+- /watchlist
+- /premium
+- /dashboard
+- /provider
+- /admin
+- /login
+- /signup
+- /api/tmdb/search
+- /api/tmdb/discover
+- /api/tmdb/movie/[id]
 
 ## Tech Stack
 
-- Next.js 16 (App Router, TypeScript)
+- Next.js 16 (App Router)
+- React 19
+- TypeScript
 - Tailwind CSS 4
-- Supabase (Postgres and Auth)
+- Lucide React
 - TMDB API
-- lucide-react icons
 
-## Implemented Baseline
-
-- Netflix/IMDB-inspired multi-page UI with a responsive landing page and dedicated routes
-- Browse page for live TMDB search and instant watchlist tracking
-- Watchlist page for status, rating, and review management
-- Premium page for advanced recommendation views
-- Provider page for streaming availability links
-- Admin page for moderation and review tickets
-- Real-time TMDB movie search via API route at /api/tmdb/search
-- Movie detail and recommendation routes at /api/tmdb/movie/[id] and /api/tmdb/discover
-- Supabase client setup in [lib/supabase/client.ts](lib/supabase/client.ts)
-- SQL schema for:
-  - profiles (id, email, role, created_at)
-  - watchlist (id, user_id, tmdb_id, status, rating, review)
-  - tickets (id, user_id, movie_name, status)
-- Watchlist controls for watched, watching, and plan-to-watch states
-- Premium recommendation mode driven by movie metadata and genres
-- Provider link management for streaming availability
-- Admin moderation queue for review reports and ticket handling
+Note:
+Supabase client and SQL schema scaffolding are included in the repository, while the current user flow runs in local demo mode via browser storage.
 
 ## Environment Variables
 
-Create a .env.local file with:
+Copy .env.example to .env.local and set values:
 
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-TMDB_API_KEY=
-TMDB_BEARER_TOKEN=
+- NEXT_PUBLIC_SUPABASE_URL=
+- NEXT_PUBLIC_SUPABASE_ANON_KEY=
+- TMDB_API_KEY=
+- NEXT_PUBLIC_TMDB_API_KEY=
+- TMDB_BEARER_TOKEN=
+- TMDB_API_READ_ACCESS_TOKEN=
 
-You can use .env.example as a template.
+TMDB setup:
 
-TMDB configuration notes:
+- Use either TMDB_API_KEY or TMDB_BEARER_TOKEN/TMDB_API_READ_ACCESS_TOKEN.
+- Keep sensitive keys in .env.local.
+- Restart dev server after changing environment variables.
 
-- You can use either TMDB_API_KEY (v3 API key) or TMDB_BEARER_TOKEN (v4 read access token).
-- Keep TMDB credentials server-side only in .env.local.
-- After editing .env.local, restart the dev server.
+## Local Development
 
-## Run Locally
+1. Install dependencies.
 
-1. Install dependencies:
-   npm install
-2. Start development server:
-   npm run dev
-3. Open:
-   http://localhost:3000
+```bash
+npm install
+```
 
-## Database Setup (Supabase)
+2. Run development server.
 
-1. Open Supabase SQL Editor.
-2. Run the SQL in supabase/schema.sql.
-3. Verify tables are created under public schema.
+```bash
+npm run dev
+```
 
-## UI Behavior
+3. Open http://localhost:3000
 
-1. Use the top navigation or landing cards to move between pages.
-2. Search TMDB titles on Browse and press "Track this movie" to add them to your watchlist.
-3. Update status, rating, and review on the Watchlist page.
-4. Review genre-based suggestions on the Premium page.
-5. Add streaming links on the Provider page.
-6. Flag a review to move it into the Admin moderation queue.
+## Quality Checks
 
-## Notes
+```bash
+npm run lint
+npm run build
+```
 
-- Role values in profiles are constrained to: normal, premium, provider, admin.
-- Watchlist status values are: watched, watching, plan_to_watch.
-- Ticket status values are: open, in_progress, resolved, closed.
+Both commands should pass before deployment.
+
+## Demo Staff Accounts
+
+- admin@movieorbit.app / Admin123!
+- moderator@movieorbit.app / Moderator123!
+- provider@movieorbit.app / Provider123!
+
+## Repository Structure
+
+- app/: routes and API handlers
+- components/: reusable UI and state logic
+- lib/: utility modules (TMDB, Supabase client)
+- supabase/: SQL schema scaffold
+
+## License
+
+This project is currently maintained as a private repository.

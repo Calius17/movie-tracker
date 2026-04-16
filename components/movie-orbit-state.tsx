@@ -38,6 +38,15 @@ export type ProviderLink = {
   notes: string;
 };
 
+export type UserNotification = {
+  id: string;
+  title: string;
+  message: string;
+  createdAt: number;
+  actionHref: string;
+  actionLabel: string;
+};
+
 export type ModerationTicket = {
   id: string;
   movieName: string;
@@ -91,6 +100,12 @@ const STORAGE_KEY = 'movie-orbit-dashboard-state';
 const ACCOUNTS_KEY = 'movie-orbit-accounts';
 const ACCOUNT_DATA_KEY = 'movie-orbit-account-data';
 const PENDING_SIGNUP_PLAN_KEY = 'movie-orbit-pending-signup-plan';
+const NOTIFICATION_PREFS_KEY = 'movie-orbit-notification-prefs';
+
+type NotificationPrefs = {
+  dismissedIds: string[];
+  lastSeenAt: number;
+};
 
 const defaultState: DashboardState = {
   isAuthenticated: false,
@@ -286,6 +301,130 @@ function clearPendingSignupPlan() {
   window.localStorage.removeItem(PENDING_SIGNUP_PLAN_KEY);
 }
 
+function loadNotificationPrefsMap(): Record<string, NotificationPrefs> {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(NOTIFICATION_PREFS_KEY);
+    if (!rawValue) {
+      return {};
+    }
+
+    const parsed = JSON.parse(rawValue) as Record<
+      string,
+      Partial<NotificationPrefs>
+    >;
+
+    return Object.fromEntries(
+      Object.entries(parsed).map(([email, prefs]) => [
+        normalizeEmail(email),
+        {
+          dismissedIds: Array.isArray(prefs.dismissedIds)
+            ? prefs.dismissedIds
+            : [],
+          lastSeenAt:
+            typeof prefs.lastSeenAt === 'number' ? prefs.lastSeenAt : 0,
+        },
+      ]),
+    );
+  } catch {
+    return {};
+  }
+}
+
+function saveNotificationPrefsMap(map: Record<string, NotificationPrefs>) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(NOTIFICATION_PREFS_KEY, JSON.stringify(map));
+}
+
+function getNotificationPrefs(email: string): NotificationPrefs {
+  const map = loadNotificationPrefsMap();
+  const normalizedEmail = normalizeEmail(email);
+
+  return map[normalizedEmail] ?? { dismissedIds: [], lastSeenAt: 0 };
+}
+
+function persistNotificationPrefs(email: string, prefs: NotificationPrefs) {
+  const map = loadNotificationPrefsMap();
+  const normalizedEmail = normalizeEmail(email);
+
+  map[normalizedEmail] = prefs;
+  saveNotificationPrefsMap(map);
+}
+
+function buildWatchlistNotifications(watchlist: WatchlistItem[]) {
+  const now = Date.now();
+  const planToWatch = watchlist.filter(
+    (item) => item.status === 'plan_to_watch',
+  );
+  const watching = watchlist.filter((item) => item.status === 'watching');
+  const watchedWithoutFeedback = watchlist.filter(
+    (item) =>
+      item.status === 'watched' && item.ratingDraft <= 0 && !item.review.trim(),
+  );
+
+  const notifications: UserNotification[] = [];
+
+  if (planToWatch.length > 0) {
+    notifications.push({
+      id: `plan-count-${planToWatch.length}`,
+      title: 'Plan-to-watch reminder',
+      message: `You have ${planToWatch.length} movie${planToWatch.length === 1 ? '' : 's'} queued in Plan to watch.`,
+      createdAt: Math.max(...planToWatch.map((item) => item.addedAt)),
+      actionHref: '/watchlist',
+      actionLabel: 'Open watchlist',
+    });
+  }
+
+  planToWatch
+    .filter((item) => now - item.addedAt >= 7 * 24 * 60 * 60 * 1000)
+    .sort((left, right) => left.addedAt - right.addedAt)
+    .slice(0, 3)
+    .forEach((item) => {
+      const daysQueued = Math.floor(
+        (now - item.addedAt) / (24 * 60 * 60 * 1000),
+      );
+
+      notifications.push({
+        id: `plan-aged-${item.id}`,
+        title: 'Movie waiting in your queue',
+        message: `${item.title} has been in Plan to watch for ${daysQueued} days.`,
+        createdAt: item.addedAt,
+        actionHref: '/watchlist',
+        actionLabel: 'Update status',
+      });
+    });
+
+  if (watching.length > 0) {
+    notifications.push({
+      id: `watching-count-${watching.length}`,
+      title: 'Continue watching',
+      message: `You are currently watching ${watching.length} movie${watching.length === 1 ? '' : 's'}.`,
+      createdAt: Math.max(...watching.map((item) => item.addedAt)),
+      actionHref: '/watchlist',
+      actionLabel: 'Continue now',
+    });
+  }
+
+  watchedWithoutFeedback.slice(0, 3).forEach((item) => {
+    notifications.push({
+      id: `rate-movie-${item.id}`,
+      title: 'Add your rating',
+      message: `You marked ${item.title} as watched. Add a rating or review to improve picks.`,
+      createdAt: item.addedAt,
+      actionHref: '/watchlist',
+      actionLabel: 'Rate movie',
+    });
+  });
+
+  return notifications.sort((left, right) => right.createdAt - left.createdAt);
+}
+
 function loadState(): DashboardState {
   if (typeof window === 'undefined') {
     return defaultState;
@@ -350,6 +489,10 @@ function useMovieOrbitStore() {
   const [state, setState] = useState<DashboardState>(defaultState);
   const [mounted, setMounted] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+  const [dismissedNotificationIds, setDismissedNotificationIds] = useState<
+    string[]
+  >([]);
+  const [lastNotificationSeenAt, setLastNotificationSeenAt] = useState(0);
   const [recommendations, setRecommendations] = useState<MovieResult[]>([]);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [providerDraft, setProviderDraft] = useState({
@@ -360,9 +503,33 @@ function useMovieOrbitStore() {
   });
 
   useEffect(() => {
-    setState(loadState());
+    const initialState = loadState();
+    setState(initialState);
+
+    if (initialState.email) {
+      const prefs = getNotificationPrefs(initialState.email);
+      setDismissedNotificationIds(prefs.dismissedIds);
+      setLastNotificationSeenAt(prefs.lastSeenAt);
+    }
+
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted) {
+      return;
+    }
+
+    if (!state.isAuthenticated || !state.email) {
+      setDismissedNotificationIds([]);
+      setLastNotificationSeenAt(0);
+      return;
+    }
+
+    const prefs = getNotificationPrefs(state.email);
+    setDismissedNotificationIds(prefs.dismissedIds);
+    setLastNotificationSeenAt(prefs.lastSeenAt);
+  }, [mounted, state.isAuthenticated, state.email]);
 
   useEffect(() => {
     if (!mounted) {
@@ -380,6 +547,23 @@ function useMovieOrbitStore() {
       });
     }
   }, [mounted, state]);
+
+  useEffect(() => {
+    if (!mounted || !state.isAuthenticated || !state.email) {
+      return;
+    }
+
+    persistNotificationPrefs(state.email, {
+      dismissedIds: dismissedNotificationIds,
+      lastSeenAt: lastNotificationSeenAt,
+    });
+  }, [
+    mounted,
+    state.isAuthenticated,
+    state.email,
+    dismissedNotificationIds,
+    lastNotificationSeenAt,
+  ]);
 
   const favoriteGenres = useMemo(
     () => buildGenreIds(state.watchlist),
@@ -409,6 +593,23 @@ function useMovieOrbitStore() {
     (ticket) => ticket.status === 'open',
   ).length;
   const genreKey = useMemo(() => favoriteGenres.join(','), [favoriteGenres]);
+  const generatedNotifications = useMemo(
+    () => buildWatchlistNotifications(state.watchlist),
+    [state.watchlist],
+  );
+  const notifications = useMemo(
+    () =>
+      generatedNotifications.filter(
+        (item) => !dismissedNotificationIds.includes(item.id),
+      ),
+    [generatedNotifications, dismissedNotificationIds],
+  );
+  const unreadNotificationCount = useMemo(
+    () =>
+      notifications.filter((item) => item.createdAt > lastNotificationSeenAt)
+        .length,
+    [notifications, lastNotificationSeenAt],
+  );
 
   useEffect(() => {
     let ignore = false;
@@ -586,6 +787,26 @@ function useMovieOrbitStore() {
     }));
   }
 
+  function dismissNotification(id: string) {
+    setDismissedNotificationIds((current) =>
+      current.includes(id) ? current : [...current, id],
+    );
+  }
+
+  function clearNotifications() {
+    setDismissedNotificationIds((current) => [
+      ...new Set([
+        ...current,
+        ...generatedNotifications.map((item) => item.id),
+      ]),
+    ]);
+    setLastNotificationSeenAt(Date.now());
+  }
+
+  function markNotificationsSeen() {
+    setLastNotificationSeenAt(Date.now());
+  }
+
   function prepareSignupPlan(plan: PlanTier, payment?: PaymentInput) {
     if (plan === 'ad_free') {
       const cardholder = payment?.cardholder.trim() ?? '';
@@ -737,6 +958,8 @@ function useMovieOrbitStore() {
     }
 
     setState(defaultState);
+    setDismissedNotificationIds([]);
+    setLastNotificationSeenAt(0);
   }
 
   function purchaseAdFreePlan(payment: PaymentInput) {
@@ -795,6 +1018,11 @@ function useMovieOrbitStore() {
     planCount,
     averageRating,
     openTickets,
+    notifications,
+    unreadNotificationCount,
+    dismissNotification,
+    clearNotifications,
+    markNotificationsSeen,
     addMovieToWatchlist,
     updateWatchlistItem,
     removeWatchlistItem,

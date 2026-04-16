@@ -2,15 +2,25 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Film } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, Film, X } from 'lucide-react';
 
 import { useMovieOrbitState } from '@/components/movie-orbit-state';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export function Navbar() {
-  const { state, signOut } = useMovieOrbitState();
+  const {
+    state,
+    signOut,
+    notifications,
+    unreadNotificationCount,
+    dismissNotification,
+    clearNotifications,
+    markNotificationsSeen,
+  } = useMovieOrbitState();
   const pathname = usePathname();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const isStaff = state.role === 'admin' || state.role === 'moderator';
   const navigation = [
     { href: '/browse', label: 'Browse' },
@@ -28,6 +38,15 @@ export function Navbar() {
     }
 
     return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  function toggleNotifications() {
+    const nextOpen = !notificationsOpen;
+    setNotificationsOpen(nextOpen);
+
+    if (nextOpen) {
+      markNotificationsSeen();
+    }
   }
 
   return (
@@ -71,6 +90,83 @@ export function Navbar() {
         <div className='flex items-center gap-2'>
           {state.isAuthenticated ? (
             <>
+              <div className='relative'>
+                <Button
+                  type='button'
+                  size='icon'
+                  variant='ghost'
+                  onClick={toggleNotifications}
+                  aria-label='Open notifications'
+                >
+                  <Bell className='h-4 w-4' />
+                </Button>
+                {unreadNotificationCount > 0 ? (
+                  <span className='absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-cyan-400 px-1 text-[10px] font-semibold text-slate-950'>
+                    {unreadNotificationCount > 9
+                      ? '9+'
+                      : unreadNotificationCount}
+                  </span>
+                ) : null}
+
+                {notificationsOpen ? (
+                  <div className='absolute right-0 top-12 z-40 w-80 rounded-2xl border border-white/10 bg-slate-950/95 p-3 shadow-[0_20px_70px_rgba(0,0,0,0.35)] backdrop-blur'>
+                    <div className='mb-2 flex items-center justify-between'>
+                      <p className='text-sm font-semibold text-white'>
+                        Notifications
+                      </p>
+                      {notifications.length > 0 ? (
+                        <button
+                          type='button'
+                          onClick={clearNotifications}
+                          className='text-xs text-slate-300 transition hover:text-white'
+                        >
+                          Clear all
+                        </button>
+                      ) : null}
+                    </div>
+
+                    {notifications.length === 0 ? (
+                      <p className='rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300'>
+                        No notifications right now.
+                      </p>
+                    ) : (
+                      <div className='space-y-2'>
+                        {notifications.slice(0, 4).map((item) => (
+                          <div
+                            key={item.id}
+                            className='rounded-xl border border-white/10 bg-white/5 p-3'
+                          >
+                            <div className='mb-1 flex items-start justify-between gap-2'>
+                              <p className='text-xs font-semibold text-white'>
+                                {item.title}
+                              </p>
+                              <button
+                                type='button'
+                                onClick={() => dismissNotification(item.id)}
+                                className='text-slate-400 transition hover:text-white'
+                                aria-label='Dismiss notification'
+                              >
+                                <X className='h-3.5 w-3.5' />
+                              </button>
+                            </div>
+                            <p className='text-xs leading-5 text-slate-300'>
+                              {item.message}
+                            </p>
+                            <Link
+                              href={item.actionHref}
+                              onClick={() => setNotificationsOpen(false)}
+                              className='mt-2 inline-flex text-xs text-cyan-200 transition hover:text-cyan-100'
+                            >
+                              {item.actionLabel}
+                            </Link>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
               <div className='hidden rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-slate-200 lg:block'>
                 {state.accountName} ·{' '}
                 {state.plan === 'ad_free' ? 'Ad-free' : 'Free'}

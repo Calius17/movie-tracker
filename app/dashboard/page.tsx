@@ -1,7 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { BarChart3, Crown, ShieldCheck, Star, UserCircle2 } from 'lucide-react';
+import {
+  BellRing,
+  BarChart3,
+  Crown,
+  ShieldCheck,
+  Star,
+  UserCircle2,
+  X,
+} from 'lucide-react';
 
 import { PageShell } from '@/components/page-shell';
 import { useMovieOrbitState } from '@/components/movie-orbit-state';
@@ -16,6 +24,9 @@ export default function DashboardPage() {
     planCount,
     averageRating,
     recommendations,
+    notifications,
+    dismissNotification,
+    clearNotifications,
   } = useMovieOrbitState();
   const isStaff = state.role === 'admin' || state.role === 'moderator';
 
@@ -155,6 +166,64 @@ export default function DashboardPage() {
               <p className='text-xs text-slate-400'>
                 Your recommendation quality improves as you rate more titles.
               </p>
+            </CardContent>
+          </Card>
+
+          <Card className='border-white/10 bg-slate-950/85 text-white'>
+            <CardContent className='space-y-3 p-5'>
+              <div className='flex items-center justify-between'>
+                <div className='flex items-center gap-2'>
+                  <p className='font-semibold'>Notifications</p>
+                  <BellRing className='h-4 w-4 text-cyan-300' />
+                </div>
+                {notifications.length > 0 ? (
+                  <button
+                    type='button'
+                    onClick={clearNotifications}
+                    className='text-xs text-slate-300 transition hover:text-white'
+                  >
+                    Clear all
+                  </button>
+                ) : null}
+              </div>
+
+              {notifications.length === 0 ? (
+                <p className='rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-slate-300'>
+                  You are all caught up.
+                </p>
+              ) : (
+                <div className='space-y-2'>
+                  {notifications.slice(0, 4).map((item) => (
+                    <div
+                      key={item.id}
+                      className='rounded-2xl border border-white/10 bg-white/5 p-3'
+                    >
+                      <div className='mb-1 flex items-start justify-between gap-2'>
+                        <p className='text-sm font-medium text-white'>
+                          {item.title}
+                        </p>
+                        <button
+                          type='button'
+                          onClick={() => dismissNotification(item.id)}
+                          className='text-slate-400 transition hover:text-white'
+                          aria-label='Dismiss notification'
+                        >
+                          <X className='h-3.5 w-3.5' />
+                        </button>
+                      </div>
+                      <p className='text-xs leading-5 text-slate-300'>
+                        {item.message}
+                      </p>
+                      <Link
+                        href={item.actionHref}
+                        className='mt-2 inline-flex h-8 items-center justify-center rounded-full border border-white/15 bg-white/5 px-3 text-xs text-slate-100 transition hover:bg-white/10'
+                      >
+                        {item.actionLabel}
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
