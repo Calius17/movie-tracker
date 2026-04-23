@@ -6,7 +6,7 @@ It combines TMDB-powered discovery with watchlist management, plan onboarding, a
 ## Live URL
 
 Primary production URL:
-https://movie-tracker-calius-projects.vercel.app/
+https://movie-tracker-five-omega.vercel.app/
 
 ## Highlights
 
