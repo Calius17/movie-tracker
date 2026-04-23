@@ -49,8 +49,7 @@ export function HeroCarousel() {
               </h2>
               <p className='max-w-xl text-sm leading-7 text-slate-300 sm:text-base'>
                 A more cinematic layout with dedicated pages for browsing,
-                watchlists, premium recommendations, provider tools, and admin
-                moderation.
+                watchlists, premium recommendations, and admin moderation.
               </p>
               <div className='flex flex-wrap gap-3'>
                 <Link

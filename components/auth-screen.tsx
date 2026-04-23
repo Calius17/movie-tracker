@@ -71,7 +71,7 @@ export function AuthScreen({ mode, selectedPlan = null }: AuthScreenProps) {
               </h1>
               <p className='text-sm leading-6 text-slate-300'>
                 {mode === 'login'
-                  ? 'Sign in to keep your watchlist, plans, provider tools, and moderation workspace in one account.'
+                  ? 'Sign in to keep your watchlist, plans, and moderation workspace in one account.'
                   : 'Create a workspace account. Access is assigned automatically.'}
               </p>
             </div>
@@ -90,8 +90,7 @@ export function AuthScreen({ mode, selectedPlan = null }: AuthScreenProps) {
             {mode === 'login' ? (
               <div className='rounded-2xl border border-white/10 bg-white/5 p-4 text-xs leading-6 text-slate-300'>
                 Demo staff logins: admin@movieorbit.app / Admin123!,
-                moderator@movieorbit.app / Moderator123!,
-                provider@movieorbit.app / Provider123!
+                moderator@movieorbit.app / Moderator123!
               </div>
             ) : null}
           </div>

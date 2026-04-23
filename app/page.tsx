@@ -1,6 +1,7 @@
 import { Flame } from 'lucide-react';
 
 import { MovieRail, SpotlightHero } from '@/components/movie-gallery';
+import { HomepageStaffPicks } from '@/components/homepage-staff-picks';
 import { getHomeCollections } from '@/lib/tmdb-server';
 
 export default async function Home() {
@@ -20,6 +21,8 @@ export default async function Home() {
       </section>
 
       <SpotlightHero movie={collections.spotlight} />
+
+      <HomepageStaffPicks />
 
       <section className='space-y-8'>
         <MovieRail

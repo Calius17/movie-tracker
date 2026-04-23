@@ -14,7 +14,7 @@ https://movie-tracker-calius-projects.vercel.app/
 - TMDB-powered browse, search, discover, and movie detail experiences
 - Personal watchlist with status, rating, and notes
 - Plan flow with Free and Ad-free onboarding
-- Role-aware pages for user dashboard, provider portal, and staff moderation
+- Role-aware pages for user dashboard and staff moderation
 - Local demo auth and per-account persisted state (isolated by user email)
 
 ## App Routes
@@ -25,7 +25,6 @@ https://movie-tracker-calius-projects.vercel.app/
 - /watchlist
 - /premium
 - /dashboard
-- /provider
 - /admin
 - /login
 - /signup
@@ -91,7 +90,6 @@ Both commands should pass before deployment.
 
 - admin@movieorbit.app / Admin123!
 - moderator@movieorbit.app / Moderator123!
-- provider@movieorbit.app / Provider123!
 
 ## Repository Structure
 

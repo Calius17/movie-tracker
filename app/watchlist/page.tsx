@@ -185,6 +185,14 @@ export default function WatchlistPage() {
                       />
                     </div>
                     <div className='flex flex-wrap gap-2'>
+                      {state.role === 'user' ? (
+                        <Link
+                          href={`/party?movieId=${movie.id}`}
+                          className='inline-flex h-10 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-500/10 px-4 text-sm text-cyan-100 transition hover:bg-cyan-500/15'
+                        >
+                          Start party
+                        </Link>
+                      ) : null}
                       <Button
                         type='button'
                         variant='secondary'

@@ -22,9 +22,11 @@ export function Navbar() {
   const pathname = usePathname();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const isStaff = state.role === 'admin' || state.role === 'moderator';
+  const isUser = state.role === 'user';
   const navigation = [
     { href: '/browse', label: 'Browse' },
-    { href: '/watchlist', label: 'My List' },
+    ...(isUser ? [{ href: '/watchlist', label: 'My List' }] : []),
+    ...(isUser ? [{ href: '/party', label: 'Watch Party' }] : []),
     { href: '/premium', label: 'Plans' },
     ...(state.isAuthenticated
       ? [{ href: '/dashboard', label: 'Dashboard' }]

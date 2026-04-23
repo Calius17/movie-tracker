@@ -11,7 +11,7 @@ import {
 
 import type { MovieResult } from '@/components/tmdb-search';
 
-export type Role = 'user' | 'moderator' | 'admin' | 'provider';
+export type Role = 'user' | 'moderator' | 'admin';
 export type PlanTier = 'free' | 'ad_free';
 type WatchStatus = 'watched' | 'watching' | 'plan_to_watch';
 type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
@@ -30,14 +30,6 @@ export type WatchlistItem = DetailedMovie & {
   addedAt: number;
 };
 
-export type ProviderLink = {
-  id: string;
-  movieName: string;
-  platform: string;
-  url: string;
-  notes: string;
-};
-
 export type UserNotification = {
   id: string;
   title: string;
@@ -45,6 +37,32 @@ export type UserNotification = {
   createdAt: number;
   actionHref: string;
   actionLabel: string;
+};
+
+export type HomeRecommendation = {
+  id: string;
+  title: string;
+  note: string;
+  createdAt: number;
+  createdByEmail: string;
+  createdByName: string;
+};
+
+export type WatchPartyStatus = 'scheduled' | 'live' | 'ended';
+
+export type WatchParty = {
+  id: string;
+  code: string;
+  movieId: number | null;
+  movieTitle: string;
+  posterPath: string | null;
+  scheduledAt: string;
+  notes: string;
+  status: WatchPartyStatus;
+  hostEmail: string;
+  hostName: string;
+  guests: { email: string; name: string; joinedAt: number }[];
+  createdAt: number;
 };
 
 export type ModerationTicket = {
@@ -62,7 +80,6 @@ type DashboardState = {
   role: Role;
   plan: PlanTier;
   watchlist: WatchlistItem[];
-  providerLinks: ProviderLink[];
   tickets: ModerationTicket[];
 };
 
@@ -76,10 +93,17 @@ type AccountRecord = {
   createdAt: number;
 };
 
-type AccountData = Pick<
-  DashboardState,
-  'watchlist' | 'providerLinks' | 'tickets'
->;
+export type ManagedAccount = Omit<AccountRecord, 'password'>;
+
+type AccountData = Pick<DashboardState, 'watchlist' | 'tickets'>;
+
+type CreateWatchPartyInput = {
+  movieId: number | null;
+  movieTitle: string;
+  posterPath?: string | null;
+  scheduledAt: string;
+  notes: string;
+};
 
 type PaymentInput = {
   cardholder: string;
@@ -101,6 +125,8 @@ const ACCOUNTS_KEY = 'movie-orbit-accounts';
 const ACCOUNT_DATA_KEY = 'movie-orbit-account-data';
 const PENDING_SIGNUP_PLAN_KEY = 'movie-orbit-pending-signup-plan';
 const NOTIFICATION_PREFS_KEY = 'movie-orbit-notification-prefs';
+const WATCH_PARTIES_KEY = 'movie-orbit-watch-parties';
+const HOME_RECOMMENDATIONS_KEY = 'movie-orbit-home-recommendations';
 
 type NotificationPrefs = {
   dismissedIds: string[];
@@ -114,7 +140,6 @@ const defaultState: DashboardState = {
   role: 'user',
   plan: 'free',
   watchlist: [],
-  providerLinks: [],
   tickets: [],
 };
 
@@ -123,34 +148,42 @@ function normalizeEmail(email: string) {
 }
 
 function isAllowedRole(value: string): value is Role {
-  return (
-    value === 'user' ||
-    value === 'moderator' ||
-    value === 'admin' ||
-    value === 'provider'
-  );
+  return value === 'user' || value === 'moderator' || value === 'admin';
 }
 
 function loadAccounts(): AccountRecord[] {
+  const demoAccounts = getDemoAccounts();
+
   if (typeof window === 'undefined') {
-    return getDemoAccounts();
+    return demoAccounts;
   }
 
   try {
     const rawState = window.localStorage.getItem(ACCOUNTS_KEY);
     if (!rawState) {
-      return getDemoAccounts();
+      return demoAccounts;
     }
 
     const parsed = JSON.parse(rawState) as AccountRecord[];
-    return parsed.map((account) => ({
-      ...account,
-      role: isAllowedRole(account.role) ? account.role : 'user',
-      plan: account.plan === 'ad_free' ? 'ad_free' : 'free',
-      email: normalizeEmail(account.email),
-    }));
+    const normalizedStoredAccounts: AccountRecord[] = parsed.map(
+      (account): AccountRecord => ({
+        ...account,
+        role: isAllowedRole(account.role) ? account.role : 'user',
+        plan: account.plan === 'ad_free' ? 'ad_free' : 'free',
+        email: normalizeEmail(account.email),
+      }),
+    );
+
+    const accountMap = new Map<string, AccountRecord>(
+      [...demoAccounts, ...normalizedStoredAccounts].map((account) => [
+        normalizeEmail(account.email),
+        account,
+      ]),
+    );
+
+    return [...accountMap.values()];
   } catch {
-    return getDemoAccounts();
+    return demoAccounts;
   }
 }
 
@@ -179,9 +212,6 @@ function loadAccountDataMap(): Record<string, AccountData> {
         normalizeEmail(email),
         {
           watchlist: Array.isArray(data.watchlist) ? data.watchlist : [],
-          providerLinks: Array.isArray(data.providerLinks)
-            ? data.providerLinks
-            : [],
           tickets: Array.isArray(data.tickets) ? data.tickets : [],
         },
       ]),
@@ -206,7 +236,6 @@ function getAccountData(email: string): AccountData {
   return (
     accountDataMap[normalizedEmail] ?? {
       watchlist: [],
-      providerLinks: [],
       tickets: [],
     }
   );
@@ -238,15 +267,6 @@ function getDemoAccounts(): AccountRecord[] {
       email: 'moderator@movieorbit.app',
       password: 'Moderator123!',
       role: 'moderator',
-      plan: 'free',
-      createdAt,
-    },
-    {
-      id: 'demo-provider',
-      name: 'Provider User',
-      email: 'provider@movieorbit.app',
-      password: 'Provider123!',
-      role: 'provider',
       plan: 'free',
       createdAt,
     },
@@ -299,6 +319,125 @@ function clearPendingSignupPlan() {
   }
 
   window.localStorage.removeItem(PENDING_SIGNUP_PLAN_KEY);
+}
+
+function loadWatchParties(): WatchParty[] {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(WATCH_PARTIES_KEY);
+    if (!rawValue) {
+      return [];
+    }
+
+    const parsed = JSON.parse(rawValue) as Partial<WatchParty>[];
+
+    return parsed
+      .filter((party) => typeof party.movieTitle === 'string')
+      .map((party) => ({
+        id: party.id ?? crypto.randomUUID(),
+        code:
+          typeof party.code === 'string' && party.code
+            ? party.code
+            : generatePartyCode(),
+        movieId: typeof party.movieId === 'number' ? party.movieId : null,
+        movieTitle: party.movieTitle ?? 'Untitled watch party',
+        posterPath:
+          typeof party.posterPath === 'string' ? party.posterPath : null,
+        scheduledAt:
+          typeof party.scheduledAt === 'string' ? party.scheduledAt : '',
+        notes: typeof party.notes === 'string' ? party.notes : '',
+        status:
+          party.status === 'live' || party.status === 'ended'
+            ? party.status
+            : 'scheduled',
+        hostEmail: normalizeEmail(party.hostEmail ?? ''),
+        hostName: party.hostName ?? 'Host',
+        guests: Array.isArray(party.guests)
+          ? party.guests
+              .filter(
+                (
+                  guest,
+                ): guest is { email: string; name: string; joinedAt: number } =>
+                  Boolean(
+                    guest &&
+                    typeof guest.email === 'string' &&
+                    typeof guest.name === 'string',
+                  ),
+              )
+              .map((guest) => ({
+                email: normalizeEmail(guest.email),
+                name: guest.name,
+                joinedAt:
+                  typeof guest.joinedAt === 'number'
+                    ? guest.joinedAt
+                    : Date.now(),
+              }))
+          : [],
+        createdAt:
+          typeof party.createdAt === 'number' ? party.createdAt : Date.now(),
+      }));
+  } catch {
+    return [];
+  }
+}
+
+function saveWatchParties(parties: WatchParty[]) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(WATCH_PARTIES_KEY, JSON.stringify(parties));
+}
+
+function generatePartyCode() {
+  return crypto.randomUUID().slice(0, 8).toUpperCase();
+}
+
+function loadHomeRecommendations(): HomeRecommendation[] {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(HOME_RECOMMENDATIONS_KEY);
+    if (!rawValue) {
+      return [];
+    }
+
+    const parsed = JSON.parse(rawValue) as Partial<HomeRecommendation>[];
+
+    return parsed
+      .filter((item) => typeof item.title === 'string' && item.title.trim())
+      .map((item) => ({
+        id: item.id ?? crypto.randomUUID(),
+        title: item.title!.trim(),
+        note: typeof item.note === 'string' ? item.note : '',
+        createdAt:
+          typeof item.createdAt === 'number' ? item.createdAt : Date.now(),
+        createdByEmail: normalizeEmail(item.createdByEmail ?? ''),
+        createdByName:
+          typeof item.createdByName === 'string' && item.createdByName
+            ? item.createdByName
+            : 'Staff',
+      }))
+      .sort((left, right) => right.createdAt - left.createdAt);
+  } catch {
+    return [];
+  }
+}
+
+function saveHomeRecommendations(recommendations: HomeRecommendation[]) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(
+    HOME_RECOMMENDATIONS_KEY,
+    JSON.stringify(recommendations),
+  );
 }
 
 function loadNotificationPrefsMap(): Record<string, NotificationPrefs> {
@@ -445,7 +584,6 @@ function loadState(): DashboardState {
       plan: parsed.plan === 'ad_free' ? 'ad_free' : 'free',
       email: normalizeEmail(parsed.email ?? ''),
       watchlist: accountData?.watchlist ?? defaultState.watchlist,
-      providerLinks: accountData?.providerLinks ?? defaultState.providerLinks,
       tickets: accountData?.tickets ?? defaultState.tickets,
     };
   } catch {
@@ -495,16 +633,16 @@ function useMovieOrbitStore() {
   const [lastNotificationSeenAt, setLastNotificationSeenAt] = useState(0);
   const [recommendations, setRecommendations] = useState<MovieResult[]>([]);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
-  const [providerDraft, setProviderDraft] = useState({
-    movieName: '',
-    platform: '',
-    url: '',
-    notes: '',
-  });
+  const [watchParties, setWatchParties] = useState<WatchParty[]>([]);
+  const [homeRecommendations, setHomeRecommendations] = useState<
+    HomeRecommendation[]
+  >([]);
 
   useEffect(() => {
     const initialState = loadState();
     setState(initialState);
+    setWatchParties(loadWatchParties());
+    setHomeRecommendations(loadHomeRecommendations());
 
     if (initialState.email) {
       const prefs = getNotificationPrefs(initialState.email);
@@ -536,17 +674,32 @@ function useMovieOrbitStore() {
       return;
     }
 
-    const { watchlist, providerLinks, tickets, ...persistedState } = state;
+    const { watchlist, tickets, ...persistedState } = state;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedState));
 
     if (state.isAuthenticated && state.email) {
       persistAccountData(state.email, {
         watchlist,
-        providerLinks,
         tickets,
       });
     }
   }, [mounted, state]);
+
+  useEffect(() => {
+    if (!mounted) {
+      return;
+    }
+
+    saveWatchParties(watchParties);
+  }, [mounted, watchParties]);
+
+  useEffect(() => {
+    if (!mounted) {
+      return;
+    }
+
+    saveHomeRecommendations(homeRecommendations);
+  }, [mounted, homeRecommendations]);
 
   useEffect(() => {
     if (!mounted || !state.isAuthenticated || !state.email) {
@@ -709,34 +862,6 @@ function useMovieOrbitStore() {
     }));
   }
 
-  function submitProviderLink() {
-    if (
-      !providerDraft.movieName ||
-      !providerDraft.platform ||
-      !providerDraft.url
-    ) {
-      setNotification('Fill movie, platform, and URL before saving the link.');
-      return;
-    }
-
-    setState((current) => ({
-      ...current,
-      providerLinks: [
-        {
-          id: crypto.randomUUID(),
-          movieName: providerDraft.movieName,
-          platform: providerDraft.platform,
-          url: providerDraft.url,
-          notes: providerDraft.notes,
-        },
-        ...current.providerLinks,
-      ],
-    }));
-
-    setProviderDraft({ movieName: '', platform: '', url: '', notes: '' });
-    setNotification('Availability link saved.');
-  }
-
   function flagReview(item: WatchlistItem) {
     if (!item.review.trim()) {
       setNotification('Add a review before flagging it for moderation.');
@@ -778,6 +903,300 @@ function useMovieOrbitStore() {
         ticket.id === id ? { ...ticket, status } : ticket,
       ),
     }));
+  }
+
+  function createWatchParty(input: CreateWatchPartyInput) {
+    if (!state.isAuthenticated || !state.email) {
+      return { ok: false, message: 'Log in to create a watch party.' };
+    }
+
+    if (state.role !== 'user') {
+      return {
+        ok: false,
+        message: 'Watch party is available for user accounts only.',
+      };
+    }
+
+    if (!input.movieTitle.trim()) {
+      return { ok: false, message: 'Pick a movie title for the party.' };
+    }
+
+    if (!input.scheduledAt) {
+      return { ok: false, message: 'Choose a date and time for the party.' };
+    }
+
+    const party: WatchParty = {
+      id: crypto.randomUUID(),
+      code: generatePartyCode(),
+      movieId: input.movieId,
+      movieTitle: input.movieTitle.trim(),
+      posterPath: input.posterPath ?? null,
+      scheduledAt: input.scheduledAt,
+      notes: input.notes.trim(),
+      status: 'scheduled',
+      hostEmail: state.email,
+      hostName: state.accountName,
+      guests: [
+        {
+          email: state.email,
+          name: state.accountName,
+          joinedAt: Date.now(),
+        },
+      ],
+      createdAt: Date.now(),
+    };
+
+    setWatchParties((current) => [party, ...current]);
+    setNotification(`Watch party created for ${party.movieTitle}.`);
+
+    return { ok: true, message: `Party code ${party.code}` };
+  }
+
+  function joinWatchParty(code: string) {
+    if (!state.isAuthenticated || !state.email) {
+      return { ok: false, message: 'Log in to join a watch party.' };
+    }
+
+    if (state.role !== 'user') {
+      return {
+        ok: false,
+        message: 'Watch party is available for user accounts only.',
+      };
+    }
+
+    const normalizedCode = code.trim().toUpperCase();
+    if (!normalizedCode) {
+      return { ok: false, message: 'Enter a party code.' };
+    }
+
+    const party = watchParties.find((item) => item.code === normalizedCode);
+    if (!party) {
+      return { ok: false, message: 'Party code not found.' };
+    }
+
+    const alreadyJoined = party.guests.some(
+      (guest) => guest.email === state.email,
+    );
+
+    if (alreadyJoined) {
+      return { ok: false, message: 'You are already in this party.' };
+    }
+
+    setWatchParties((current) =>
+      current.map((item) =>
+        item.id === party.id
+          ? {
+              ...item,
+              guests: [
+                ...item.guests,
+                {
+                  email: state.email,
+                  name: state.accountName,
+                  joinedAt: Date.now(),
+                },
+              ],
+            }
+          : item,
+      ),
+    );
+
+    setNotification(`Joined watch party ${party.code}.`);
+    return { ok: true, message: `Joined ${party.movieTitle}.` };
+  }
+
+  function updateWatchPartyStatus(id: string, status: WatchPartyStatus) {
+    if (!state.isAuthenticated || !state.email) {
+      return { ok: false, message: 'Log in to manage a watch party.' };
+    }
+
+    if (state.role !== 'user') {
+      return {
+        ok: false,
+        message: 'Watch party is available for user accounts only.',
+      };
+    }
+
+    const party = watchParties.find((item) => item.id === id);
+    if (!party) {
+      return { ok: false, message: 'Watch party not found.' };
+    }
+
+    if (party.hostEmail !== state.email) {
+      return { ok: false, message: 'Only the host can update this party.' };
+    }
+
+    setWatchParties((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status,
+            }
+          : item,
+      ),
+    );
+
+    return { ok: true, message: `Party marked ${status}.` };
+  }
+
+  function leaveWatchParty(id: string) {
+    if (!state.isAuthenticated || !state.email) {
+      return { ok: false, message: 'Log in to leave a watch party.' };
+    }
+
+    if (state.role !== 'user') {
+      return {
+        ok: false,
+        message: 'Watch party is available for user accounts only.',
+      };
+    }
+
+    const party = watchParties.find((item) => item.id === id);
+    if (!party) {
+      return { ok: false, message: 'Watch party not found.' };
+    }
+
+    if (party.hostEmail === state.email) {
+      return { ok: false, message: 'Hosts should end the party instead.' };
+    }
+
+    setWatchParties((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              guests: item.guests.filter(
+                (guest) => guest.email !== state.email,
+              ),
+            }
+          : item,
+      ),
+    );
+
+    return { ok: true, message: 'Left the party.' };
+  }
+
+  function addHomeRecommendation(title: string, note: string) {
+    if (!state.isAuthenticated || !state.email) {
+      return { ok: false, message: 'Log in to add homepage recommendations.' };
+    }
+
+    const isStaff = state.role === 'admin' || state.role === 'moderator';
+    if (!isStaff) {
+      return {
+        ok: false,
+        message: 'Only admin or moderator accounts can add homepage picks.',
+      };
+    }
+
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      return { ok: false, message: 'Enter a movie title.' };
+    }
+
+    const exists = homeRecommendations.some(
+      (item) => item.title.toLowerCase() === trimmedTitle.toLowerCase(),
+    );
+    if (exists) {
+      return { ok: false, message: 'This title is already in homepage picks.' };
+    }
+
+    const recommendation: HomeRecommendation = {
+      id: crypto.randomUUID(),
+      title: trimmedTitle,
+      note: note.trim(),
+      createdAt: Date.now(),
+      createdByEmail: state.email,
+      createdByName: state.accountName,
+    };
+
+    setHomeRecommendations((current) => [recommendation, ...current]);
+    setNotification(`${trimmedTitle} added to homepage recommendations.`);
+
+    return { ok: true, message: 'Homepage recommendation added.' };
+  }
+
+  function removeHomeRecommendation(id: string) {
+    if (!state.isAuthenticated || !state.email) {
+      return {
+        ok: false,
+        message: 'Log in to remove homepage recommendations.',
+      };
+    }
+
+    const isStaff = state.role === 'admin' || state.role === 'moderator';
+    if (!isStaff) {
+      return {
+        ok: false,
+        message: 'Only admin or moderator accounts can remove homepage picks.',
+      };
+    }
+
+    setHomeRecommendations((current) =>
+      current.filter((item) => item.id !== id),
+    );
+
+    return { ok: true, message: 'Homepage recommendation removed.' };
+  }
+
+  const managedAccounts: ManagedAccount[] = loadAccounts()
+    .map((account) => ({
+      id: account.id,
+      name: account.name,
+      email: account.email,
+      role: account.role,
+      plan: account.plan,
+      createdAt: account.createdAt,
+    }))
+    .sort((left, right) => right.createdAt - left.createdAt);
+
+  function updateAccountRole(email: string, role: Role) {
+    if (!state.isAuthenticated || !state.email) {
+      return { ok: false, message: 'Log in to manage account roles.' };
+    }
+
+    if (state.role !== 'admin') {
+      return {
+        ok: false,
+        message: 'Only admin accounts can update user and staff roles.',
+      };
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) {
+      return { ok: false, message: 'Select a valid account email.' };
+    }
+
+    if (normalizedEmail === state.email) {
+      return {
+        ok: false,
+        message: 'Admin role for your active account cannot be changed here.',
+      };
+    }
+
+    const accounts = loadAccounts();
+    const accountToUpdate = accounts.find(
+      (account) => account.email === normalizedEmail,
+    );
+
+    if (!accountToUpdate) {
+      return { ok: false, message: 'Account not found.' };
+    }
+
+    if (accountToUpdate.role === role) {
+      return { ok: false, message: 'Account already has this role.' };
+    }
+
+    const updatedAccounts = accounts.map((account) =>
+      account.email === normalizedEmail ? { ...account, role } : account,
+    );
+    saveAccounts(updatedAccounts);
+
+    setNotification(
+      `${accountToUpdate.name} role updated to ${role.replace('_', ' ')}.`,
+    );
+
+    return { ok: true, message: `${accountToUpdate.name} is now ${role}.` };
   }
 
   function setRole(role: Role) {
@@ -952,7 +1371,6 @@ function useMovieOrbitStore() {
     if (state.email) {
       persistAccountData(state.email, {
         watchlist: state.watchlist,
-        providerLinks: state.providerLinks,
         tickets: state.tickets,
       });
     }
@@ -1010,14 +1428,22 @@ function useMovieOrbitStore() {
     setNotification,
     recommendations,
     recommendationsLoading,
-    providerDraft,
-    setProviderDraft,
     favoriteGenres,
     watchedCount,
     watchingCount,
     planCount,
     averageRating,
     openTickets,
+    homeRecommendations,
+    managedAccounts,
+    updateAccountRole,
+    addHomeRecommendation,
+    removeHomeRecommendation,
+    watchParties,
+    createWatchParty,
+    joinWatchParty,
+    updateWatchPartyStatus,
+    leaveWatchParty,
     notifications,
     unreadNotificationCount,
     dismissNotification,
@@ -1026,7 +1452,6 @@ function useMovieOrbitStore() {
     addMovieToWatchlist,
     updateWatchlistItem,
     removeWatchlistItem,
-    submitProviderLink,
     flagReview,
     updateTicketStatus,
   };

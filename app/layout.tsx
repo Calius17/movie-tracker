@@ -103,12 +103,6 @@ export default function RootLayout({
                       Sign up
                     </Link>
                     <Link
-                      href='/provider'
-                      className='block text-slate-400 transition hover:text-white'
-                    >
-                      Provider Portal
-                    </Link>
-                    <Link
                       href='/admin'
                       className='block text-slate-400 transition hover:text-white'
                     >
